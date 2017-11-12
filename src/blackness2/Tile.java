@@ -279,7 +279,6 @@ public class Tile {
         placeLeftBottomCorner = boolTemp;*/
         
         
-        
         AffineTransform transform = new AffineTransform();
         transform.rotate(Math.PI/2, img.getWidth()/2, img.getHeight()/2);
         AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);

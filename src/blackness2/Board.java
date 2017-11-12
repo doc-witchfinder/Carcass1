@@ -8,6 +8,7 @@ package blackness2;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -18,7 +19,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Random;
@@ -45,6 +49,10 @@ public class Board extends JPanel implements MouseListener{
     public static final int TILE_SIZE = 85;
    
     public BufferedImage tileset2;
+    public BufferedImage arrow;
+    public BufferedImage arrow2;
+    public BufferedImage dude;
+    
     private int numTilesAcross; 
     private TilesetBasic tileset;
     private Tile test;
@@ -59,6 +67,10 @@ public class Board extends JPanel implements MouseListener{
     private int tileCounter = 0;
     private int numTiles;
     
+    // numer aktualnego gracza;
+    private int currentPlayer = 0;
+    
+    
     private ArrayList<Integer> pile = new ArrayList<>();
     private ArrayList<Tile> tiles = new ArrayList<>();
     private ArrayList<Follower> dudes = new ArrayList<>();
@@ -70,6 +82,15 @@ public class Board extends JPanel implements MouseListener{
     public static int gridWidth = 8;
     public static int gridHeight = 7;
     public static int noPlayers = 4;
+    // offset mówi jakie jest przesunięcie w danej osi wyświetlanej mapy 
+    // względem rzeczywistych współrzędnych mapy.
+    public int offsetX = 0;
+    public int offsetY = 0;
+    
+    // pozycja górnej strzałki:
+    public Rectangle arrUp = new Rectangle(382, 3, 40, 40);
+    public Rectangle arrDown = new Rectangle(384, 673, 40, 40);
+    
     
     // boolean tilePicked = false;
      
@@ -77,6 +98,7 @@ public class Board extends JPanel implements MouseListener{
     boolean tilePlaced = true;
     
     private int points[]={0, 0, 0, 0};
+    private int dudesLeft[]={7, 7, 7, 7};
     
     private BoardInspector inspector;
     
@@ -102,13 +124,42 @@ public class Board extends JPanel implements MouseListener{
         // this.imgBackground = new ImageIcon(urlBackgroundImg).getImage();
         
         // początkowy zestaw typów
-        for(int i=0; i<7; i++){
+        //for(int i=0; i<7; i++){
             
-          dudes.add(new Follower(820+(i*35), 260));
+        //  dudes.add(new Follower(820+(i*35), 260));
+        //}
+        
+        // wczytuję plik ze strzałką...
+        
+        arrow = null;
+         try{
+            arrow = ImageIO.read(new File("src/images/arroł_2.png"));
+        } catch(Exception e){
+            e.printStackTrace();
         }
         
+        arrow2 = null;
+            try {
+                    arrow2 = ImageIO.read(new File("src/images/arroł_2.png"));
+                } catch (IOException e) {
+        }
+         
+        AffineTransform transform = new AffineTransform();
+        transform.rotate(Math.PI, arrow2.getWidth(null)/2, arrow2.getHeight(null)/2);
+        AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);
+        arrow2 = op.filter(arrow2, null);
+         
+        try{
+        dude = ImageIO.read(new File("src/images/dude_black.png"));
         
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+         
+         
         //ImageIcon icn = new ImageIcon("src/images/zbik.jpg");
+        //ImageIcon icn = new ImageIcon("src/images/trawa.jpg");
+        
         ImageIcon icn = new ImageIcon("src/images/trawa.jpg");
         
         img = icn.getImage();
@@ -120,7 +171,7 @@ public class Board extends JPanel implements MouseListener{
         tileset = new TilesetBasic();
         
         // grid = createGrid(30, 30, 8, 5, 85); // stare
-        grid = createGrid(30, 30, gridHeight, gridWidth, 85);
+        grid = createGrid(45, 45, gridHeight, gridWidth, 85);
         
         //lastTile = tileset.getTile(BUG);
         //lastTile.setPosition(grid[5][2]);
@@ -145,7 +196,7 @@ public class Board extends JPanel implements MouseListener{
         rectTop = new Field(800, 140, TILE_SIZE, TILE_SIZE);
         pileTop.setPosition(rectTop);
         
-        //repaint();
+        // repaint();
         
         for(int g=0; g<6; g++){
                          for(int h=0; h<5; h++){
@@ -173,8 +224,7 @@ public class Board extends JPanel implements MouseListener{
         tiles.add(temp);
         this.tilePlaced = true;
         this.bufferPlaced = false;
-        
-        
+                
         repaint();        
     }
     
@@ -233,7 +283,9 @@ public class Board extends JPanel implements MouseListener{
     @Override
     public void paintComponent(Graphics g){
         
-        // init paint
+        
+        
+        // init paint, zmieniony ze względu na przyciski przesuwania mapy.
         if(startPaint == false){
         g.drawImage(img, 0, 0, 1100, 750, null);
         //Graphics2D g2d = (Graphics2D) g;
@@ -248,9 +300,24 @@ public class Board extends JPanel implements MouseListener{
                 g.fillRect(grid[i][j].x, grid[i][j].y, grid[i][j].width, grid[i][j].height);
             }
         }
+        
+        g.drawImage(arrow, arrUp.x, arrUp.y, arrUp.width, arrUp.height, null);
+        g.drawImage(arrow2, arrDown.x, arrDown.y, arrDown.width, arrDown.height, null);
+        // g.drawImage(arrow, 382, 3, 40, 40, null);
+        // g.drawImage(arrow2, 384, 674, 40, 40, null);
+        
+        // rysowanie wskaźnika typa 
+        g.drawImage(dude, 820, 260, 50, 50, this);
+        Font font = new Font("Impact", 1, 50);
+        g.setFont(font);
+        g.setColor(Color.BLACK);
+        g.drawString(": " + dudesLeft[currentPlayer], 890, 305);
+        
         startPaint = true;
         }
         //g.drawImage(lastTile.getImage(), lastTile.getx(), lastTile.gety(), null);
+        
+        
         
         if(bufferPlaced==true)
             g.drawImage(buffer.getImage(), buffer.getx(), buffer.gety(), null);
@@ -259,11 +326,14 @@ public class Board extends JPanel implements MouseListener{
         for(int count=0; count<tiles.size(); count++){
         temp = tiles.get(count);
         
-        g.drawImage(temp.getImage(), temp.getx(), temp.gety(), null);
+        // owarunkowanie czy dany tile leży w polu mapy.
+            if(temp.getx()+offsetX>=45 && temp.getx()+offsetX<720 && temp.gety()+offsetY>=45) {
+                g.drawImage(temp.getImage(), temp.getx()-offsetX, temp.gety()-offsetY, null);
+            }
         }
         
         for(Follower dude: dudes){
-           g.drawImage(dude.getImage(), dude.getX(), dude.getY(), null);
+           g.drawImage(dude.getImage(), dude.getX()-offsetX, dude.getY()-offsetY, null);
         }
         
     }
@@ -282,7 +352,7 @@ public class Board extends JPanel implements MouseListener{
         Field[][] temp = new Field[rows][cols];
         
         for(int j=0; j<cols; j++){
-            
+        // tutaj jest hardkodowany offset... może to być niechciane.    
         for(int i=0; i<rows; i++){
             temp[i][j] = new Field(x+90*j, y+i*90, tileSize, tileSize); // tutaj zmieniłem x na y
         }
@@ -311,6 +381,20 @@ public class Board extends JPanel implements MouseListener{
         
         if(e.getButton() == MouseEvent.BUTTON1){
            
+          // zwiększanie offsetu przyciskiem...
+          if(arrUp.contains(e.getPoint())&&offsetY>0)
+          {
+              offsetY-=90;
+              startPaint = false;
+              repaint();
+          }
+          
+          if(arrDown.contains(e.getPoint())&&offsetY<630){
+             offsetY+=90;
+             startPaint = false;
+             repaint();
+           }
+          
           if(rectTop.contains(e.getPoint()) && tileCounter<numTiles){
               System.out.println("Kliknąłeś w stosik " + tileCounter);
               
@@ -333,10 +417,11 @@ public class Board extends JPanel implements MouseListener{
           // kładzenie kafelków na planszy
           for(int i=0; i<gridHeight; i++){
               for(int j=0; j<gridWidth; j++){
-                  if(grid[i][j].contains(e.getPoint())&&tilePlaced==false&&grid[i][j].isOccupied()==false){
+                  // pobierany jest punkt na planszy ale przesuwany jest do rzeczywistej pozycji na mapie.
+                  if(grid[i][j].contains(e.getX()+offsetX, e.getY()+offsetY)&&tilePlaced==false&&grid[i][j].isOccupied()==false){
                       
                       System.out.println(i + ", " + j + " : " + grid[i][j].isOccupied());
-                      System.out.println("Kwadrat o wsp. x=" + grid[i][j].getX() + ", y=" + grid[i][j].getY());
+                      System.out.println("Kwadrat o wsp. x=" + grid[i][j].getX()+offsetX + ", y=" + grid[i][j].getY()+offsetY);
                       System.out.println(buffer.getType());
                       
                       if(inspector.bordersRight(buffer, grid, i, j)){
@@ -379,17 +464,19 @@ public class Board extends JPanel implements MouseListener{
                    
             for(int i=0; i<Board.gridHeight; i++){
               for(int j=0; j<Board.gridWidth; j++){
-                  if(grid[i][j].contains(e.getPoint())&&grid[i][j].isOccupied()==true&&dudeFlag==false){
+                  if(grid[i][j].contains(e.getX()+offsetX, e.getY()+offsetY)&&grid[i][j].isOccupied()==true&&dudeFlag==false){
                       System.out.println("No elo coś się xD stało");
                       int temp = 0;
                       boolean flagPlaced = false;
                       
                       for(int g=0; g<9; g++){
-                          if(grid[i][j].tile.slots[g].contains(e.getPoint())&&grid[i][j].tile.slots[g].enabled==true)
+                          if(grid[i][j].tile.slots[g].contains(e.getX()+offsetX, e.getY()+offsetY)&&grid[i][j].tile.slots[g].enabled==true&&dudesLeft[currentPlayer]>0)
                           {
                             dudes.add(new Follower((int) grid[i][j].tile.slots[g].getX(), (int) grid[i][j].tile.slots[g].getY()));
+                            dudesLeft[currentPlayer]--;
                             repaint();
                             flagPlaced = true;
+                            startPaint = false;
                             temp = g;
                             dudeFlag = true;
                             break;
