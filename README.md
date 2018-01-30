@@ -1,4 +1,4 @@
-# piyastassone88
+# Piyastassone8
 
 Java adaptation of a popular board game Carcassone.
 
